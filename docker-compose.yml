@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  flask-server:
+    build: .
+    container_name: flask-server
+    ports:
+      - "5000:5000"  # Expose Flask server on localhost
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - SMS_GATEWAY_URL=${SMS_GATEWAY_URL}
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    restart: always
+
+  db:
+    image: postgres:14
+    container_name: flask-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
+  sms-gateway:
+    image: sms-gateway:latest  # Reference to the SMS Gateway image
+    container_name: sms-gateway
+    build:
+      context: ../sms_gateway  # Path to your SMS Gateway project
+    devices:
+      - "/dev/ttyUSB2:/dev/ttyUSB2"  # Adjust the modem port
+    ports:
+      - "5001:5000"
+    restart: always
+
+volumes:
+  db_data:
