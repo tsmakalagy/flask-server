@@ -46,6 +46,7 @@ def verify_otp():
     data = request.json
     phone_number = data.get("phone_number")
     otp = data.get("otp")
+    name = data.get("name", "Unknown")  # Optional name field
 
     if not phone_number or not otp:
         return jsonify({"status": "error", "message": "Phone number and OTP are required"}), 400
@@ -68,6 +69,20 @@ def verify_otp():
             "UPDATE sms_logs SET verified = TRUE WHERE phone_number = %s AND otp = %s",
             (phone_number, otp)
         )
+
+        # Check if the user already exists in the users table
+        cur.execute(
+            "SELECT * FROM users WHERE phone_number = %s",
+            (phone_number,)
+        )
+        user_exists = cur.fetchone()
+
+        # Insert the user into the users table if not already present
+        if not user_exists:
+            cur.execute(
+                "INSERT INTO users (phone_number, name) VALUES (%s, %s)",
+                (phone_number, name)
+            )
 
         # Generate JWT
         access_token = create_access_token(identity=phone_number)
