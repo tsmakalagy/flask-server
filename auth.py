@@ -12,6 +12,7 @@ def register():
     data = request.json
     phone_number = data.get("phone_number")
     name = data.get("name", "")
+    app_name = data.get("app_name", "Unknown App")
 
     if not phone_number:
         return jsonify({"status": "error", "message": "Phone number is required"}), 400
@@ -47,6 +48,7 @@ def verify_otp():
     phone_number = data.get("phone_number")
     otp = data.get("otp")
     name = data.get("name", "Unknown")  # Optional name field
+    app_name = data.get("app_name", "Unknown App")
 
     if not phone_number or not otp:
         return jsonify({"status": "error", "message": "Phone number and OTP are required"}), 400
@@ -70,22 +72,23 @@ def verify_otp():
             (phone_number, otp)
         )
 
-        # Check if the user already exists in the users table
+        # Add app to `user_apps` table if not already present
         cur.execute(
-            "SELECT * FROM users WHERE phone_number = %s",
-            (phone_number,)
+            """
+            INSERT INTO user_apps (user_id, app_name)
+            SELECT id, %s FROM users WHERE phone_number = %s
+            ON CONFLICT DO NOTHING
+            """,
+            (app_name, phone_number)
         )
-        user_exists = cur.fetchone()
-
-        # Insert the user into the users table if not already present
-        if not user_exists:
-            cur.execute(
-                "INSERT INTO users (phone_number, name) VALUES (%s, %s)",
-                (phone_number, name)
-            )
 
         # Generate JWT
-        access_token = create_access_token(identity=phone_number)
+        cur.execute(
+            "SELECT id FROM users WHERE phone_number = %s",
+            (phone_number,)
+        )
+        user_id = cur.fetchone()[0]
+        access_token = create_access_token(identity=user_id)
         conn.commit()
 
         return jsonify({"status": "success", "access_token": access_token}), 200
