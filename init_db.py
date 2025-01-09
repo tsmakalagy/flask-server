@@ -26,11 +26,11 @@ def init_db():
     """)
 
     cur.execute("""
-    CREATE TABLE user_apps (
-        id SERIAL PRIMARY KEY,
-        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        app_name VARCHAR(255) NOT NULL,
-        authenticated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CREATE TABLE IF NOT EXISTS user_apps (
+        user_id UUID REFERENCES users(id),
+        app_name VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT user_apps_pkey PRIMARY KEY (user_id, app_name)
     );
     """)
 

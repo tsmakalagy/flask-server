@@ -94,7 +94,8 @@ def verify_otp():
             """
             INSERT INTO user_apps (user_id, app_name)
             VALUES (%s, %s)
-            ON CONFLICT (user_id, app_name) DO NOTHING
+            ON CONFLICT ON CONSTRAINT user_apps_pkey DO UPDATE 
+            SET created_at = CURRENT_TIMESTAMP
             """,
             (user_id, app_name)
         )
