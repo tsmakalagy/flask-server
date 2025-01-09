@@ -74,20 +74,32 @@ def verify_otp():
 
         # Add app to `user_apps` table if not already present
         cur.execute(
-            """
-            INSERT INTO user_apps (user_id, app_name)
-            SELECT id, %s FROM users WHERE phone_number = %s
-            ON CONFLICT DO NOTHING
-            """,
-            (app_name, phone_number)
-        )
-
-        # Generate JWT
-        cur.execute(
             "SELECT id FROM users WHERE phone_number = %s",
             (phone_number,)
         )
-        user_id = cur.fetchone()[0]
+        user_record = cur.fetchone()
+        
+        if user_record is None:
+            # Create new user
+            cur.execute(
+                "INSERT INTO users (phone_number, name) VALUES (%s, %s) RETURNING id",
+                (phone_number, name)
+            )
+            user_id = cur.fetchone()[0]
+        else:
+            user_id = user_record[0]
+
+        # Add app to user_apps table
+        cur.execute(
+            """
+            INSERT INTO user_apps (user_id, app_name)
+            VALUES (%s, %s)
+            ON CONFLICT (user_id, app_name) DO NOTHING
+            """,
+            (user_id, app_name)
+        )
+
+        # Generate JWT
         access_token = create_access_token(identity=user_id)
         conn.commit()
 
