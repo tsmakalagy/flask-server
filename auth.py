@@ -106,12 +106,11 @@ def email_register():
                 
                 user = cur.fetchone()
                 
-                # Add app to user_apps
+                # Simpler insert for user_apps without update
                 cur.execute("""
                     INSERT INTO user_apps (user_id, app_name)
                     VALUES (%s, %s)
-                    ON CONFLICT ON CONSTRAINT user_apps_pkey DO UPDATE 
-                    SET updated_at = CURRENT_TIMESTAMP
+                    ON CONFLICT (user_id, app_name) DO NOTHING
                 """, (user['id'], app_name))
                 
                 # Create JWT token
