@@ -81,15 +81,28 @@ def email_register():
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Start transaction
-                cur.execute("BEGIN")
-                
-                # Create new user
+                # Check if email already exists
+                cur.execute(
+                    "SELECT id FROM users WHERE email = %s",
+                    (email,)
+                )
+                if cur.fetchone():
+                    return jsonify({
+                        "status": "error",
+                        "message": "Email already registered"
+                    }), 400
+
+                # Create new user with explicit NULL for phone_number
                 cur.execute("""
-                    INSERT INTO users (email, password_hash, name, auth_type)
-                    VALUES (%s, %s, %s, 'email')
+                    INSERT INTO users 
+                    (email, password_hash, name, auth_type, phone_number)
+                    VALUES (%s, %s, %s, 'email', NULL)
                     RETURNING id, email, name
-                """, (email, generate_password_hash(password), name))
+                """, (
+                    email,
+                    generate_password_hash(password),
+                    name
+                ))
                 
                 user = cur.fetchone()
                 
@@ -111,11 +124,6 @@ def email_register():
                     "user": user
                 }), 200
 
-    except errors.UniqueViolation:
-        return jsonify({
-            "status": "error",
-            "message": "Email already registered"
-        }), 400
     except Exception as e:
         return jsonify({
             "status": "error",
